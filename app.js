@@ -1,7 +1,7 @@
 const express=require('express');
-const mysql=require('mysql');
 const bodyParser=require('body-parser');
 const connection=require('./database');
+const fileUpload=require('express-fileupload')
 
 
 connection.connect(function (err) {
@@ -17,6 +17,8 @@ const port=3000;
 
 app.use(bodyParser.urlencoded({extended:false}))
 app.use(bodyParser.json());
+app.use(express.static('public'))
+app.use(fileUpload());
 app.set('view engine','ejs');
 app.set('views','./views')
 
@@ -26,11 +28,15 @@ app.get('/create', (req, res) => {
 
 app.post('/create',(req, res)=>{
     const {name,price,status,author}=req.body;
-    console.log(req.body);
+    console.log(1)
+    console.log(req.files)
+    let avatar=req.files.image;
 
-    const sql='insert into books(name,price,status,author) values ?';
+    avatar.mv('./public/images/'+avatar.name);
+
+    const sql='insert into books(name,price,status,author,image) values ?';
     const value=[
-        [name,price,status,author]
+        [name,price,status,author,avatar.name]
     ];
     connection.query(sql,[value],(err,result)=>{
         if(err)throw err;
@@ -40,7 +46,8 @@ app.post('/create',(req, res)=>{
 })
 
 app.get("/books", (req, res) => {
-    const sql = "SELECT * FROM books";
+    let offset=req.query.offset || 0 ;
+    const sql = "SELECT * FROM books limit 5 offset "+offset;
     connection.query(sql, function (err, result) {
         if (err) throw err;
         res.render("read", {books: result});
